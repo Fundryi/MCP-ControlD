@@ -97,5 +97,8 @@ Still open:
 - ~~License~~ → MIT (LICENSE file, 2026-08-07)
 - npm package name (placeholder `controld-mcp` in package.json; `private: true`
   until publishing is decided)
-- Items marked "verify live" in PLAN.md (rule-update semantics, folder-delete
-  body, CSV log export on personal accounts)
+- Items marked "verify live" in PLAN.md: rule-update semantics and folder-delete
+  body still need a write token + throwaway profile. Resolved live 2026-08-07:
+  CSV log export works on personal accounts (endpoint ID = `stats_endpoint`
+  from `/users`); root rules are served at `/rules` only — `/rules/0` 404s
+  despite the docs.
