@@ -1,0 +1,33 @@
+# --- Secrets and personal data (this repo will be made public) ---
+# Personal Claude Code instructions — account IDs, real test data, local paths.
+# Loaded by Claude Code alongside CLAUDE.md; never committed.
+CLAUDE.local.md
+**/CLAUDE.local.md
+.claude/settings.local.json
+.env
+.env.*
+!.env.example
+*.token
+*token*.json
+*secret*
+*credential*
+# MCP client configs — these embed API tokens
+claude_desktop_config.json
+mcp.json
+.mcp.json
+# Anything captured from a live Control D account
+fixtures/live/
+*.live.json
+scratch/
+private/
+notes/
+*.local.*
+
+# --- Build / tooling ---
+node_modules/
+dist/
+build/
+coverage/
+*.log
+.DS_Store
+Thumbs.db
