@@ -108,18 +108,20 @@ These tools are registered only when `CONTROLD_ENABLE_WRITES=1`.
 | `controld_set_service_rule` | Set a service rule. |
 | `controld_set_default_rule` | Set a profile's default rule. |
 | `controld_create_custom_rules` | Create custom rules in bulk. |
+| `controld_update_custom_rules` | Update custom rules, selected by hostname. |
 | `controld_delete_custom_rule` | Delete a custom rule. |
 | `controld_create_rule_folder` | Create a rule folder. |
 | `controld_update_rule_folder` | Update a rule folder. |
+| `controld_delete_rule_folder` | Delete a rule folder and every rule in it. |
 | `controld_create_device` | Create a device. |
 | `controld_update_device` | Update a device. |
 | `controld_delete_device` | Delete a device, which can break its DNS resolution. |
 | `controld_authorize_ips` | Authorize IP addresses. |
 | `controld_deauthorize_ips` | Deauthorize IP addresses. |
 
-Not yet implemented (their documented API semantics are ambiguous and need live
-verification): custom-rule updates, rule-folder deletion, and organization
-management writes.
+Not yet implemented: organization management writes (`PUT /organizations`
+target-selection semantics are undocumented and cannot be verified on a
+personal account).
 
 ## Logging and debugging
 

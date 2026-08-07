@@ -25,9 +25,11 @@ const writeToolNames = [
   "controld_set_service_rule",
   "controld_set_default_rule",
   "controld_create_custom_rules",
+  "controld_update_custom_rules",
   "controld_delete_custom_rule",
   "controld_create_rule_folder",
   "controld_update_rule_folder",
+  "controld_delete_rule_folder",
   "controld_create_device",
   "controld_update_device",
   "controld_delete_device",
@@ -103,6 +105,7 @@ test("write tools send the documented methods, paths, and body encodings", async
       [
         "controld_delete_profile",
         "controld_delete_custom_rule",
+        "controld_delete_rule_folder",
         "controld_delete_device",
         "controld_deauthorize_ips",
       ],
@@ -147,6 +150,13 @@ test("write tools send the documented methods, paths, and body encodings", async
       status: 1,
       folder_id: "abcdefghij",
     });
+    await call("controld_update_custom_rules", {
+      profile_id: "1234567890",
+      hostnames: ["example.com"],
+      do: 1,
+      status: 1,
+      folder_id: 0,
+    });
     await call("controld_delete_custom_rule", {
       profile_id: "1234567890",
       hostname: "example.com/path?",
@@ -163,6 +173,10 @@ test("write tools send the documented methods, paths, and body encodings", async
       name: "Updated Folder",
       do: 1,
       status: 1,
+    });
+    await call("controld_delete_rule_folder", {
+      profile_id: "1234567890",
+      folder: 42,
     });
     await call("controld_create_device", {
       name: "Example Device",
@@ -220,9 +234,11 @@ test("write tools send the documented methods, paths, and body encodings", async
       ["PUT", "/profiles/1234567890/services/video%2Fservice"],
       ["PUT", "/profiles/1234567890/default"],
       ["POST", "/profiles/1234567890/rules"],
+      ["PUT", "/profiles/1234567890/rules"],
       ["DELETE", "/profiles/1234567890/rules/example.com%2Fpath%3F"],
       ["POST", "/profiles/1234567890/groups"],
       ["PUT", "/profiles/1234567890/groups/folder%2Fname"],
+      ["DELETE", "/profiles/1234567890/groups/42"],
       ["POST", "/devices"],
       ["PUT", "/devices/abcdefghij"],
       ["DELETE", "/devices/abcdefghij"],
@@ -241,7 +257,7 @@ test("write tools send the documented methods, paths, and body encodings", async
     assert.deepEqual(rulesBody.getAll("hostnames[]"), ["example.com", "www.example.com"]);
     assert.equal(rulesBody.get("group"), "abcdefghij");
 
-    for (const index of [14, 15]) {
+    for (const index of [16, 17]) {
       assert.equal(requests[index].contentType, "application/x-www-form-urlencoded");
       assert.deepEqual(
         new URLSearchParams(requests[index].body).getAll("ips[]"),

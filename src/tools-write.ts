@@ -217,6 +217,31 @@ export const writeTools: readonly ToolDefinition[] = [
     ),
   }),
   defineTool({
+    name: "controld_update_custom_rules",
+    config: {
+      description: "Update existing custom rules on a Control D profile. Rules are selected by hostname; hostnames not listed are untouched (live-verified).",
+      inputSchema: z.object({
+        profile_id: nonEmptyString,
+        hostnames: z.array(nonEmptyString).min(1),
+        do: doCode,
+        status: binaryStatus,
+        via: nonEmptyString.optional(),
+        via_v6: nonEmptyString.optional(),
+        folder_id: z.union([nonEmptyString, integer.min(0)]).optional(),
+        ...subOrgInput,
+      }).strict(),
+      annotations: writeAnnotations,
+    },
+    handler: (client, { profile_id, folder_id, sub_org_id, ...value }) => client.request(
+      `/profiles/${segment(profile_id)}/rules`,
+      {
+        method: "PUT",
+        body: { encoding: "form", value: { ...value, group: folder_id } },
+        subOrgId: sub_org_id,
+      },
+    ),
+  }),
+  defineTool({
     name: "controld_delete_custom_rule",
     config: {
       description: "Delete a custom hostname rule from a Control D profile.",
@@ -277,6 +302,22 @@ export const writeTools: readonly ToolDefinition[] = [
         body: { encoding: "form", value },
         subOrgId: sub_org_id,
       },
+    ),
+  }),
+  defineTool({
+    name: "controld_delete_rule_folder",
+    config: {
+      description: "Delete a custom-rule folder AND every rule inside it (cascade, live-verified).",
+      inputSchema: z.object({
+        profile_id: nonEmptyString,
+        folder: z.union([nonEmptyString, integer.min(0)]),
+        ...subOrgInput,
+      }).strict(),
+      annotations: destructiveAnnotations,
+    },
+    handler: (client, { profile_id, folder, sub_org_id }) => client.request(
+      `/profiles/${segment(profile_id)}/groups/${segment(folder)}`,
+      { method: "DELETE", subOrgId: sub_org_id },
     ),
   }),
   defineTool({

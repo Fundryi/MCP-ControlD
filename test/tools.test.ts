@@ -92,7 +92,7 @@ test("registers write tools only when writes are enabled", async () => {
     fetch: (async () => new Response(JSON.stringify({ body: {}, success: true }))) as typeof globalThis.fetch,
   });
 
-  for (const [writesEnabled, expectedCount] of [[false, 12], [true, 28]] as const) {
+  for (const [writesEnabled, expectedCount] of [[false, 12], [true, 30]] as const) {
     const server = new McpServer({ name: "test-server", version: "0.1.0" });
     registerTools(server, controlDClient, writesEnabled);
     const client = new Client({ name: "test-client", version: "0.1.0" });
