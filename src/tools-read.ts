@@ -12,7 +12,7 @@ import {
 const profileConfigInput = z.object({
   profile_id: nonEmptyString,
   section: z.enum(["filters", "external_filters", "services", "folders", "rules", "default_rule"]),
-  folder_id: nonEmptyString.optional().describe("Rule folder ID. Used only when section is rules; ignored otherwise."),
+  folder_id: nonEmptyString.optional().describe("Rule folder ID. Used only when section is rules; omit or pass 0 for the root folder."),
   ...subOrgInput,
 }).strict();
 
@@ -60,7 +60,9 @@ export const readTools: readonly ToolDefinition[] = [
         rules: "rules",
         default_rule: "default",
       }[section];
-      const effectiveFolderId = section === "rules" ? folder_id : undefined;
+      // Live-verified: /rules/0 404s; the root folder is addressed by omitting
+      // the segment entirely.
+      const effectiveFolderId = section === "rules" && folder_id !== "0" ? folder_id : undefined;
       const folderPath = effectiveFolderId !== undefined ? `/${segment(effectiveFolderId)}` : "";
 
       return client.request(`${profilePath}/${sectionPath}${folderPath}`, {

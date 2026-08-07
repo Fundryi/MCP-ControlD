@@ -69,6 +69,28 @@ test("constructs the authenticated CSV export URL", async () => {
   });
 });
 
+test("auto-discovers the analytics endpoint ID from the account when omitted", async () => {
+  const requests: string[] = [];
+  const fetch = async (input: string | URL | Request) => {
+    const url = new URL(String(input));
+    requests.push(url.hostname + url.pathname);
+    if (url.pathname === "/users") return ok({ stats_endpoint: "abcdefghij" });
+    return new Response("timestamp,question\n2025-12-05T00:00:00Z,example.com\n");
+  };
+
+  await withDiagnostics(fetch as typeof globalThis.fetch, async (client) => {
+    const result = await client.callTool({
+      name: "controld_export_dns_query_logs",
+      arguments: { start_time: "2025-12-04T00:00:00Z" },
+    });
+    assert.match(textContent(result), /example\.com/);
+  });
+  assert.deepEqual(requests, [
+    "api.controld.com/users",
+    "abcdefghij.analytics.controld.com/v2/activity-log/csv",
+  ]);
+});
+
 test("rejects unsafe analytics endpoint IDs and invalid RFC 3339 timestamps", async () => {
   let fetched = false;
   const fetch = async () => {
@@ -130,7 +152,7 @@ test("walks root and folder rules and reports heuristic domain findings", async 
       "/profiles/1234567890/groups": {
         groups: [{ PK: "abcdefghij", group: "Example folder", action: { status: 1 }, count: 2 }],
       },
-      "/profiles/1234567890/rules/0": {
+      "/profiles/1234567890/rules": {
         rules: [
           { PK: "example.com", order: 1, group: 0, action: { do: 0, status: 1 } },
           { PK: "*.example.com", order: 2, group: 0, action: { do: 0, status: "1" } },
@@ -218,14 +240,14 @@ test("walks root and folder rules and reports heuristic domain findings", async 
 
   assert.deepEqual(requests, [
     "/profiles/1234567890/groups|1234567890",
-    "/profiles/1234567890/rules/0|1234567890",
+    "/profiles/1234567890/rules|1234567890",
     "/profiles/1234567890/rules/abcdefghij|1234567890",
     "/profiles/1234567890/services|1234567890",
     "/profiles/1234567890/filters|1234567890",
     "/profiles/1234567890/filters/external|1234567890",
     "/profiles/1234567890/default|1234567890",
     "/profiles/1234567890/groups|",
-    "/profiles/1234567890/rules/0|",
+    "/profiles/1234567890/rules|",
     "/profiles/1234567890/rules/abcdefghij|",
     "/profiles/1234567890/services|",
     "/profiles/1234567890/filters|",

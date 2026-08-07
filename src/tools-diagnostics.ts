@@ -50,7 +50,7 @@ export const diagnosticsTools: readonly ToolDefinition[] = [
     config: {
       description: "Experimental: export DNS query logs as CSV. Requires Full Analytics on the device and may require an organization account.",
       inputSchema: z.object({
-        analytics_endpoint_id: analyticsEndpointId.describe("Analytics instance endpoint ID, not a hostname or URL."),
+        analytics_endpoint_id: analyticsEndpointId.optional().describe("Analytics instance endpoint ID, not a hostname or URL. Omitted: auto-discovered from the account's stats_endpoint."),
         start_time: rfc3339.describe("RFC 3339 start timestamp."),
         end_time: rfc3339.optional().describe("Optional RFC 3339 end timestamp; omit for current logs."),
         device_id: nonEmptyString.optional().describe("Optional device/resolver ID."),
@@ -65,7 +65,19 @@ export const diagnosticsTools: readonly ToolDefinition[] = [
       device_id,
       sub_org_id,
     }) => {
-      const url = new URL(`https://${analytics_endpoint_id}.analytics.controld.com/v2/activity-log/csv`);
+      let endpointId = analytics_endpoint_id;
+      if (endpointId === undefined) {
+        const account = await client.request<{ stats_endpoint?: unknown }>("/users", {
+          subOrgId: sub_org_id,
+        });
+        if (typeof account.stats_endpoint !== "string" || account.stats_endpoint === "") {
+          throw new Error(
+            "No analytics endpoint found on the account; pass analytics_endpoint_id explicitly.",
+          );
+        }
+        endpointId = analyticsEndpointId.parse(account.stats_endpoint);
+      }
+      const url = new URL(`https://${endpointId}.analytics.controld.com/v2/activity-log/csv`);
       url.searchParams.set("startTime", start_time);
       if (end_time) url.searchParams.set("endTime", end_time);
       if (device_id) url.searchParams.set("endpointId", device_id);
@@ -97,8 +109,10 @@ export const diagnosticsTools: readonly ToolDefinition[] = [
         "groups",
       );
       const selectedGroups = groups.slice(0, MAX_RULE_FOLDERS - 1);
-      const folders: Array<{ id: string; folder: unknown }> = [
-        { id: "0", folder: { PK: 0, group: "Root" } },
+      // Live-verified: /rules/0 returns "No such group exists"; root rules are
+      // only served at /rules with the folder segment omitted.
+      const folders: Array<{ id: string | null; folder: unknown }> = [
+        { id: null, folder: { PK: 0, group: "Root" } },
       ];
       for (const folder of selectedGroups) {
         if (!isRecord(folder) || (typeof folder.PK !== "string" && typeof folder.PK !== "number")) {
@@ -109,7 +123,7 @@ export const diagnosticsTools: readonly ToolDefinition[] = [
 
       const [ruleSets, servicesValue, filtersValue, externalFiltersValue, defaultValue] = await Promise.all([
         Promise.all(folders.map(({ id }) => client.request(
-          `${profilePath}/rules/${segment(id)}`,
+          id === null ? `${profilePath}/rules` : `${profilePath}/rules/${segment(id)}`,
           requestOptions,
         ))),
         client.request(`${profilePath}/services`, requestOptions),
