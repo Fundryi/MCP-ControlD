@@ -1,6 +1,6 @@
 {
   "name": "mcp-controld",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "MCP server for the Control D API. Manage DNS profiles, filters, rules, and devices from any MCP client.",
   "keywords": [
     "mcp",
