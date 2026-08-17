@@ -87,6 +87,24 @@ a signature.
   `new URL(path, base)` — that lets `//host` retarget the request.
 - No tests that mutate a live account. Fixtures only.
 
+## Releasing
+
+Published to npm as `mcp-controld`, by hand, from a maintainer's machine:
+
+```sh
+npm version patch && npm publish && git push --follow-tags
+```
+
+`prepublishOnly` runs the tests and `prepare` rebuilds `dist/`, so a broken or
+stale build cannot reach the registry.
+
+**Do not add a release workflow.** This was deliberately removed. A solo
+maintainer publishing a handful of versions a year does not need a CI job, an
+`NPM_TOKEN` secret to rotate, and a tag ritual. The cost of that machinery is
+paid every time it breaks; the benefit was npm provenance, which is a nice
+signal and not worth the upkeep here. CI still runs tests on every push, which
+is the part that earns its keep.
+
 ## Decisions made
 
 - **TypeScript + `@modelcontextprotocol/sdk`, stdio transport.** Default choice;
