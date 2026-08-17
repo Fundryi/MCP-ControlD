@@ -1,0 +1,3 @@
+# Store and check out every text file with LF. Without this, contributors on
+# Windows produce line-ending-only diffs that look like real changes.
+* text=auto eol=lf
