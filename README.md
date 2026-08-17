@@ -209,7 +209,7 @@ The two escape hatches, `controld_request_read` and `controld_request_write`, ex
 - Paths are host-relative and validated. A path such as `//example.com/x` cannot retarget the request at another host. The CSV export checks the hostname before attaching credentials, so the token only ever goes to Control D or to a host you configured yourself in `CONTROLD_API_BASE_URL`.
 - Tool output is capped at 1 MiB, with a truncation notice, so a huge response cannot flood your client's context.
 - Every request has a timeout, so a hung API call cannot stall your session. Only GET is ever retried. A write is never replayed, because a failure can arrive after the change already took effect.
-- Releases are cut by hand from a clean tree. `npm publish` runs the test suite first and refuses to ship if anything fails.
+- Every published version is built from source and gated on the full test suite at publish time, so a release cannot contain a stale build or a failing test.
 
 Found a security problem? See [SECURITY.md](SECURITY.md).
 
@@ -231,18 +231,6 @@ npm run build     # compile to dist/
 ```
 
 Tests use fixtures and a stubbed `fetch`. Nothing in the suite touches a live account.
-
-### Releasing
-
-Releases go out from a maintainer's machine, not from CI. Push everything first, then:
-
-```sh
-npm version patch          # or minor / major. Commits and tags.
-npm publish                # runs the tests, rebuilds dist/, then uploads
-git push --follow-tags
-```
-
-`npm publish` will not ship if the tests fail, because `prepublishOnly` runs them. It rebuilds `dist/` from source on the way out, so a stale build cannot be published.
 
 ## License
 
