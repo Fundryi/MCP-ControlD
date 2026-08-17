@@ -48,11 +48,59 @@ Everything comes from environment variables, supplied by your MCP client. The se
 
 Splitting the tokens is the point: reads keep using a read-scoped credential even on a server that can write, so a read tool cannot mutate anything even if something goes wrong upstream of it.
 
+### Every option, shown
+
+This is the full `env` block with every variable set. Copy the lines you want and delete the rest. Nothing here is required except the first.
+
+```json
+"env": {
+  "CONTROLD_API_TOKEN_READ": "YOUR_API_TOKEN",
+  "CONTROLD_API_TOKEN_WRITE": "YOUR_API_TOKEN",
+  "CONTROLD_ORG_ID": "1234567890",
+  "CONTROLD_API_BASE_URL": "https://api.controld.com"
+}
+```
+
+The same thing in TOML, for Codex CLI:
+
+```toml
+[mcp_servers.controld.env]
+CONTROLD_API_TOKEN_READ = "YOUR_API_TOKEN"
+CONTROLD_API_TOKEN_WRITE = "YOUR_API_TOKEN"
+CONTROLD_ORG_ID = "1234567890"
+CONTROLD_API_BASE_URL = "https://api.controld.com"
+```
+
+And on the Claude Code command line:
+
+```sh
+claude mcp add controld \
+  -e CONTROLD_API_TOKEN_READ=YOUR_API_TOKEN \
+  -e CONTROLD_API_TOKEN_WRITE=YOUR_API_TOKEN \
+  -e CONTROLD_ORG_ID=1234567890 \
+  -- npx -y mcp-controld
+```
+
+Do not copy that block whole. Each optional line has a reason to leave it out:
+
+- **`CONTROLD_API_TOKEN_WRITE`** turns on 21 tools that can change your DNS. Leave it out until you want that.
+- **`CONTROLD_ORG_ID`** only applies to organization accounts. It sends an org header on every request, and a personal account rejects it.
+- **`CONTROLD_API_BASE_URL`** is shown set to its own default, so including it changes nothing. It is there so you know the format if you ever need to point at a proxy.
+
+Using the older single token instead of the pair looks like this:
+
+```json
+"env": {
+  "CONTROLD_API_TOKEN": "YOUR_API_TOKEN",
+  "CONTROLD_ENABLE_WRITES": "1"
+}
+```
+
 ## Setup
 
 There is nothing to install and no setup command to run. Point your MCP client at `npx mcp-controld` and it fetches and starts the server for you.
 
-Every example below sets up **read-only** access, using one token. That is the safe default and it cannot change anything in your account. To let the server make changes, add a second token as well: see [turning on write tools](#turning-on-write-tools).
+Every example below sets up **read-only** access, using one token. That is the safe default and it cannot change anything in your account. For the version with every option filled in, see [every option, shown](#every-option-shown) above.
 
 ### Claude Code
 
