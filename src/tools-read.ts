@@ -1,17 +1,39 @@
 import { z } from "zod";
 
 import {
+  apiPath,
   defineTool,
   nonEmptyString,
+  queryInput,
   readAnnotations,
   segment,
   subOrgInput,
+  withQuery,
   type ToolDefinition,
 } from "./tools-shared.js";
 
+const profileSectionPaths = {
+  filters: "filters",
+  external_filters: "filters/external",
+  services: "services",
+  folders: "groups",
+  rules: "rules",
+  default_rule: "default",
+} as const;
+
+type ProfileSection = keyof typeof profileSectionPaths;
+
 const profileConfigInput = z.object({
   profile_id: nonEmptyString,
-  section: z.enum(["filters", "external_filters", "services", "folders", "rules", "default_rule"]),
+  section: z.enum([
+    "filters",
+    "external_filters",
+    "services",
+    "folders",
+    "rules",
+    "default_rule",
+    "all",
+  ]).describe("Configuration section to read, or 'all' to fetch every section in one call."),
   folder_id: nonEmptyString.optional().describe("Rule folder ID. Used only when section is rules; omit or pass 0 for the root folder."),
   ...subOrgInput,
 }).strict();
@@ -46,28 +68,29 @@ export const readTools: readonly ToolDefinition[] = [
   defineTool({
     name: "controld_get_profile_config",
     config: {
-      description: "Get one configuration section for a Control D profile.",
+      description: "Get one configuration section for a Control D profile, or every section at once with section 'all'.",
       inputSchema: profileConfigInput,
       annotations: readAnnotations,
     },
-    handler: (client, { profile_id, section, folder_id, sub_org_id }) => {
+    handler: async (client, { profile_id, section, folder_id, sub_org_id }) => {
       const profilePath = `/profiles/${segment(profile_id)}`;
-      const sectionPath = {
-        filters: "filters",
-        external_filters: "filters/external",
-        services: "services",
-        folders: "groups",
-        rules: "rules",
-        default_rule: "default",
-      }[section];
-      // Live-verified: /rules/0 404s; the root folder is addressed by omitting
-      // the segment entirely.
-      const effectiveFolderId = section === "rules" && folder_id !== "0" ? folder_id : undefined;
-      const folderPath = effectiveFolderId !== undefined ? `/${segment(effectiveFolderId)}` : "";
+      const options = { subOrgId: sub_org_id };
+      const read = (name: ProfileSection, folder?: string) => {
+        // Live-verified: /rules/0 404s; the root folder is addressed by omitting
+        // the segment entirely.
+        const effectiveFolder = name === "rules" && folder !== "0" ? folder : undefined;
+        const folderPath = effectiveFolder !== undefined ? `/${segment(effectiveFolder)}` : "";
+        return client.request(`${profilePath}/${profileSectionPaths[name]}${folderPath}`, options);
+      };
 
-      return client.request(`${profilePath}/${sectionPath}${folderPath}`, {
-        subOrgId: sub_org_id,
-      });
+      if (section !== "all") return read(section as ProfileSection, folder_id);
+
+      const names = Object.keys(profileSectionPaths) as ProfileSection[];
+      const results = await Promise.all(names.map((name) => read(name, folder_id)));
+      return {
+        note: "'rules' covers the requested folder only, root by default. Use controld_explain_domain to walk every folder.",
+        ...Object.fromEntries(names.map((name, index) => [name, results[index]])),
+      };
     },
   }),
   defineTool({
@@ -159,5 +182,21 @@ export const readTools: readonly ToolDefinition[] = [
       annotations: readAnnotations,
     },
     handler: (client) => client.request("/network"),
+  }),
+  defineTool({
+    name: "controld_request_read",
+    config: {
+      description: "Escape hatch: GET any Control D API path with the read token. Use only when no typed tool covers what you need, for example the undocumented '/devices/users' and '/devices/routers'. Cannot modify anything.",
+      inputSchema: z.object({
+        path: apiPath,
+        query: queryInput,
+        ...subOrgInput,
+      }).strict(),
+      annotations: readAnnotations,
+    },
+    handler: (client, { path, query, sub_org_id }) => client.request(
+      withQuery(path, query),
+      { subOrgId: sub_org_id },
+    ),
   }),
 ] as const;

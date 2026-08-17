@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import {
+  apiPath,
   defineTool,
   destructiveAnnotations,
   nonEmptyString,
@@ -13,6 +14,22 @@ import {
 const integer = z.number().int();
 const doCode = integer.min(0).max(3).describe("Rule action: 0 block, 1 bypass, 2 spoof, 3 redirect.");
 const binaryStatus = z.union([z.literal(0), z.literal(1)]);
+
+const formScalar = z.union([z.string(), z.number(), z.boolean()]);
+const rawFormBody = z.record(z.string().min(1), z.union([formScalar, z.array(formScalar)]));
+
+// Documented at PUT /organizations and POST /organizations/suborg. Both take the
+// same field set; only the required list differs.
+const organizationInput = {
+  contact_email: nonEmptyString.describe("Primary contact email for the organization."),
+  twofa_req: binaryStatus.describe("Require 2FA for members: 0 no, 1 yes."),
+  stats_endpoint: nonEmptyString.describe("Storage region PK. See controld_list_catalog with catalog 'analytics_regions'."),
+  address: z.string().optional().describe("Physical address."),
+  website: z.string().optional().describe("Website URL."),
+  contact_name: z.string().optional().describe("Name of the responsible contact."),
+  contact_phone: z.string().optional().describe("Contact phone number."),
+  parent_profile: nonEmptyString.optional().describe("Global profile PK enforced on all created devices."),
+};
 
 const deviceCreateInput = {
   name: nonEmptyString,
@@ -397,6 +414,70 @@ export const writeTools: readonly ToolDefinition[] = [
       method: "DELETE",
       body: { encoding: "form", value },
       subOrgId: sub_org_id,
+    }),
+  }),
+  defineTool({
+    name: "controld_create_suborg",
+    config: {
+      description: "Create a sub-organization. Organization accounts only.",
+      inputSchema: z.object({
+        name: nonEmptyString.describe("Organization name."),
+        ...organizationInput,
+        ...subOrgInput,
+      }).strict(),
+      annotations: writeAnnotations,
+    },
+    handler: (client, { sub_org_id, ...value }) => client.request("/organizations/suborg", {
+      method: "POST",
+      body: { encoding: "form", value },
+      subOrgId: sub_org_id,
+    }),
+  }),
+  defineTool({
+    name: "controld_update_organization",
+    config: {
+      description: "Modify an organization's contact and policy details. Organization accounts only. UNVERIFIED: Control D documents the fields but no identifier parameter, and does not say how the target organization is chosen, so this tool has not been confirmed against a live account. It may modify an organization other than the one you intend. Ask the user to confirm before calling it, and re-read the organization afterwards to check what changed.",
+      inputSchema: z.object({
+        name: nonEmptyString.optional().describe("Organization name."),
+        contact_email: nonEmptyString.optional().describe("Primary contact email for the organization."),
+        twofa_req: organizationInput.twofa_req.optional(),
+        stats_endpoint: nonEmptyString.optional().describe("Storage region PK. See controld_list_catalog with catalog 'analytics_regions'."),
+        address: organizationInput.address,
+        website: organizationInput.website,
+        contact_name: organizationInput.contact_name,
+        contact_phone: organizationInput.contact_phone,
+        parent_profile: organizationInput.parent_profile,
+        ...subOrgInput,
+      }).strict(),
+      annotations: writeAnnotations,
+    },
+    handler: (client, { sub_org_id, ...value }) => client.request("/organizations", {
+      method: "PUT",
+      body: { encoding: "form", value },
+      subOrgId: sub_org_id,
+    }),
+  }),
+  defineTool({
+    name: "controld_request_write",
+    config: {
+      description: "Escape hatch: send a mutating request to any Control D API path with the write token. Use only when no typed tool covers what you need, because nothing here validates the body against the endpoint. Prefer the named tools, which check their inputs.",
+      inputSchema: z.object({
+        method: z.enum(["POST", "PUT", "PATCH", "DELETE"]).describe("HTTP method."),
+        path: apiPath,
+        encoding: z.enum(["form", "json"]).default("form").describe("Body encoding. Control D documents form encoding for almost every write."),
+        body: z.record(z.string().min(1), z.unknown()).optional().describe("Request body fields. Form encoding accepts strings, numbers, booleans, and arrays of those."),
+        ...subOrgInput,
+      }).strict(),
+      annotations: destructiveAnnotations,
+    },
+    handler: (client, { method, path, encoding, body, sub_org_id }) => client.request(path, {
+      method,
+      subOrgId: sub_org_id,
+      body: body === undefined
+        ? undefined
+        : encoding === "json"
+          ? { encoding: "json", value: body }
+          : { encoding: "form", value: rawFormBody.parse(body) },
     }),
   }),
 ] as const;

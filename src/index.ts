@@ -3,19 +3,22 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 
-import { createControlDClient } from "./client.js";
-import type { ControlDClient } from "./client.js";
+import { createControlDClient, resolveConfig } from "./client.js";
+import type { ControlDClient, ResolvedConfig } from "./client.js";
 import { registerTools } from "./tools.js";
 
+let config: ResolvedConfig;
 let client: ControlDClient;
 try {
-  client = createControlDClient();
+  config = resolveConfig();
+  client = createControlDClient(config);
 } catch (error) {
+  // Config errors name the variable, never its value.
   console.error(error instanceof Error ? error.message : String(error));
   process.exit(1);
 }
 
-const server = new McpServer({ name: "controld-mcp", version: "0.1.0" });
+const server = new McpServer({ name: "mcp-controld", version: "0.1.0" });
 
-registerTools(server, client);
+registerTools(server, client, config.writeToken !== undefined);
 await server.connect(new StdioServerTransport());

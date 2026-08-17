@@ -1,6 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
-import type { ControlDClient } from "./client.js";
+import { redact, type ControlDClient } from "./client.js";
 import { diagnosticsTools } from "./tools-diagnostics.js";
 import { readTools } from "./tools-read.js";
 import { writeTools } from "./tools-write.js";
@@ -11,9 +11,12 @@ function registerTool(server: McpServer, client: ControlDClient, tool: ToolDefin
     try {
       return textResult(await tool.handler(client, args));
     } catch (error) {
-      const token = process.env.CONTROLD_API_TOKEN;
       const message = error instanceof Error ? error.message : String(error);
-      throw new Error(token ? message.split(token).join("[REDACTED]") : message);
+      throw new Error(redact(message, [
+        process.env.CONTROLD_API_TOKEN,
+        process.env.CONTROLD_API_TOKEN_READ,
+        process.env.CONTROLD_API_TOKEN_WRITE,
+      ]));
     }
   });
 }
@@ -21,7 +24,7 @@ function registerTool(server: McpServer, client: ControlDClient, tool: ToolDefin
 export function registerTools(
   server: McpServer,
   client: ControlDClient,
-  writesEnabled = process.env.CONTROLD_ENABLE_WRITES === "1",
+  writesEnabled: boolean,
 ): void {
   for (const tool of [...readTools, ...diagnosticsTools]) {
     if (tool.config.annotations.readOnlyHint !== true) {

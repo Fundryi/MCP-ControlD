@@ -165,7 +165,7 @@ annotations (`readOnlyHint`, `destructiveHint`, `idempotentHint`) for clients
 that render them; naming alone is sufficient for those that don't.
 Profile/device/access/log tools accept optional `sub_org_id` → `X-Force-Org-Id`.
 
-### Read tools (12) — always registered
+### Read and diagnostic tools (13) — always registered
 | Tool | Endpoint(s) |
 |---|---|
 | `controld_list_profiles` | GET /profiles |
@@ -181,7 +181,7 @@ Profile/device/access/log tools accept optional `sub_org_id` → `X-Force-Org-Id
 | `controld_export_dns_query_logs` (`analytics_endpoint_id`, `start_time`, `end_time?`, `device_id?`) — experimental; server constructs+validates the hostname (SSRF guard), caps response size | analytics CSV endpoint |
 | `controld_explain_domain` (`profile_id`, `domain`) — config-walk described in §4; read-only composite | multiple GETs |
 
-### Write tools (18) — registered only when `CONTROLD_ENABLE_WRITES=1`
+### Write tools (21) — registered only when a write credential is configured
 | Tool | Endpoint |
 |---|---|
 | `controld_create_profile` | POST /profiles |
@@ -219,7 +219,7 @@ src/
   tools.ts    # zod schemas + handlers, read/write grouped
 ```
 
-- Deps: `@modelcontextprotocol/sdk`, `zod` only. Node ≥18 native fetch.
+- Deps: `@modelcontextprotocol/sdk`, `zod` only. Node >=22 native fetch.
 - No codegen (docs ship per-page OpenAPI fragments, not a spec), no classes, no
   per-endpoint files.
 - `CONTROLD_API_TOKEN` from env only; missing ⇒ startup error naming the
@@ -253,9 +253,13 @@ src/
 ## 9. Open questions (owner)
 
 - **License** — MIT is the default suggestion; must be picked before public.
-- **npm package name** (`controld-mcp`?).
-- Ship `controld_update_organization` / sub-org tools at all? (Owner appears to
-  be a personal account.)
-- Is CSV log export usable on personal accounts, or org-only? (Live check.)
+- ~~**npm package name**~~ → `mcp-controld`; `controld-mcp` is taken on npm.
+- ~~Ship `controld_update_organization` / sub-org tools at all?~~ → shipped.
+  `controld_create_suborg` matches the documented contract.
+  `controld_update_organization` is marked UNVERIFIED in its description: the
+  docs define no identifier parameter, so target selection is an inference and
+  still needs a live organization account to confirm.
+- ~~Is CSV log export usable on personal accounts, or org-only?~~ → works,
+  endpoint ID comes from `stats_endpoint` on `/users`.
 - Default writes on or off? Plan says off (`CONTROLD_ENABLE_WRITES=1` to
   enable); flip if daily-driver convenience wins.

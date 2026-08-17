@@ -7,6 +7,9 @@ CLAUDE.local.md
 .env
 .env.*
 !.env.example
+.envrc
+*.pem
+*.key
 *.token
 *token*.json
 *secret*

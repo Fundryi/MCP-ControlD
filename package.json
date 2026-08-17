@@ -1,17 +1,37 @@
 {
-  "name": "controld-mcp",
+  "name": "mcp-controld",
   "version": "0.1.0",
-  "private": true,
+  "description": "MCP server for the Control D API. Manage DNS profiles, filters, rules, and devices from any MCP client.",
+  "keywords": [
+    "mcp",
+    "mcp-server",
+    "model-context-protocol",
+    "controld",
+    "control-d",
+    "dns",
+    "dns-filtering",
+    "claude",
+    "ai"
+  ],
+  "homepage": "https://github.com/Fundryi/MCP-ControlD#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Fundryi/MCP-ControlD.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Fundryi/MCP-ControlD/issues"
+  },
+  "author": "Fundryi",
   "license": "MIT",
   "type": "module",
   "bin": {
-    "controld-mcp": "dist/index.js"
+    "mcp-controld": "dist/index.js"
   },
   "files": [
     "dist"
   ],
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -23,8 +43,8 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@types/node": "^18.19.0",
-    "tsx": "^4.23.11",
-    "typescript": "^5.9.3"
+    "@types/node": "^22.20.1",
+    "tsx": "^4.23.12",
+    "typescript": "^7.0.2"
   }
 }

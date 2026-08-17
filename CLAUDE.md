@@ -3,7 +3,7 @@
 ## What this is
 
 An MCP server wrapping the Control D REST API. See [README.md](README.md) for scope.
-Currently pre-implementation — the repo is scaffolding only.
+Implemented and tested; pre-1.0 and not yet published to npm.
 
 ## THIS REPO WILL BE PUBLISHED
 
@@ -46,9 +46,10 @@ comments.
 understand a shape, scrub every ID, IP, domain, and name before it lands in a
 tracked file. Live captures go in `fixtures/live/` (gitignored) and stay there.
 
-**Secrets only come from the environment.** `CONTROLD_API_TOKEN`, read at
-runtime. Never a default value in code, never a config file, never a CLI arg
-(it shows up in process lists and shell history).
+**Secrets only come from the environment.** `CONTROLD_API_TOKEN_READ` and the
+optional `CONTROLD_API_TOKEN_WRITE`, read at runtime (`CONTROLD_API_TOKEN` is
+still accepted for older setups). Never a default value in code, never a config
+file, never a CLI arg (it shows up in process lists and shell history).
 
 **Never log or echo the token.** Not at debug level, not in a stack trace, not
 in an MCP error response, not in a "check your config" message. If an error
@@ -76,7 +77,14 @@ a signature.
 
 - Write operations (anything that changes a profile, filter, rule, or endpoint)
   must be obviously named as such and must not be triggered as a side effect of
-  a read tool.
+  a read tool. `controld_request_write` is the one deliberate exception: it is a
+  generic escape hatch, so it is annotated destructive and gated on the write
+  token like every other write tool.
+- Reads use the read token, writes use the write token. Never route a GET
+  through the write credential.
+- Any new path built from user input goes through `apiPath` or `segment`. Never
+  hand a raw string to `client.request`, and never resolve a path with
+  `new URL(path, base)` — that lets `//host` retarget the request.
 - No tests that mutate a live account. Fixtures only.
 
 ## Decisions made
@@ -95,8 +103,9 @@ Resolved 2026-08-07 — see [PLAN.md](PLAN.md) for the full design:
 Still open:
 
 - ~~License~~ → MIT (LICENSE file, 2026-08-07)
-- npm package name (placeholder `controld-mcp` in package.json; `private: true`
-  until publishing is decided)
+- ~~npm package name~~ → `mcp-controld` (2026-08-17). `controld-mcp` was taken on
+  npm by an unrelated project. `private` has been removed from package.json, so
+  `npm publish` will go through; do not run it without the owner asking.
 - Items marked "verify live" in PLAN.md: rule-update semantics and folder-delete
   body still need a write token + throwaway profile. Resolved live 2026-08-07:
   CSV log export works on personal accounts (endpoint ID = `stats_endpoint`

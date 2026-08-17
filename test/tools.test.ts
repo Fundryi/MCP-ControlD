@@ -31,7 +31,7 @@ test("registers the full read surface, gates writes, and calls the foundation to
   try {
     const tools = await client.listTools();
     const names = tools.tools.map(({ name }) => name);
-    assert.equal(names.length, 12, `writes disabled should expose 12 tools, got: ${names.join(", ")}`);
+    assert.equal(names.length, 13, `writes disabled should expose 13 tools, got: ${names.join(", ")}`);
     assert(names.includes("controld_list_profiles"));
     assert(names.includes("controld_get_request_ip"));
     assert(tools.tools.every(({ annotations }) => annotations?.readOnlyHint === true));
@@ -92,7 +92,7 @@ test("registers write tools only when writes are enabled", async () => {
     fetch: (async () => new Response(JSON.stringify({ body: {}, success: true }))) as typeof globalThis.fetch,
   });
 
-  for (const [writesEnabled, expectedCount] of [[false, 12], [true, 30]] as const) {
+  for (const [writesEnabled, expectedCount] of [[false, 13], [true, 34]] as const) {
     const server = new McpServer({ name: "test-server", version: "0.1.0" });
     registerTools(server, controlDClient, writesEnabled);
     const client = new Client({ name: "test-client", version: "0.1.0" });

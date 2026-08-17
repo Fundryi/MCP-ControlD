@@ -35,11 +35,14 @@ const writeToolNames = [
   "controld_delete_device",
   "controld_authorize_ips",
   "controld_deauthorize_ips",
+  "controld_create_suborg",
+  "controld_update_organization",
+  "controld_request_write",
 ] as const;
 
 async function connect(
   fetch: typeof globalThis.fetch,
-  writesEnabled?: boolean,
+  writesEnabled = false,
 ) {
   const server = new McpServer({ name: "test-server", version: "0.1.0" });
   registerTools(server, createControlDClient({ token: "YOUR_API_TOKEN", fetch }), writesEnabled);
@@ -57,7 +60,7 @@ async function connect(
   };
 }
 
-test("does not register write tools when CONTROLD_ENABLE_WRITES is unset", async () => {
+test("does not register write tools when writes are disabled", async () => {
   const previous = process.env.CONTROLD_ENABLE_WRITES;
   delete process.env.CONTROLD_ENABLE_WRITES;
   const fetch = async () => new Response(JSON.stringify({ body: {}, success: true }));
@@ -108,6 +111,7 @@ test("write tools send the documented methods, paths, and body encodings", async
         "controld_delete_rule_folder",
         "controld_delete_device",
         "controld_deauthorize_ips",
+        "controld_request_write",
       ],
     );
 
@@ -264,6 +268,117 @@ test("write tools send the documented methods, paths, and body encodings", async
         ["203.0.113.10", "2001:db8::1"],
       );
     }
+  } finally {
+    await session.close();
+  }
+});
+
+test("organization write tools post the documented form fields", async () => {
+  const requests: CapturedRequest[] = [];
+  const fetch = async (input: string | URL | Request, init?: RequestInit) => {
+    const headers = new Headers(init?.headers);
+    requests.push({
+      method: init?.method ?? "GET",
+      path: new URL(String(input)).pathname,
+      body: String(init?.body ?? ""),
+      contentType: headers.get("content-type"),
+      subOrgId: headers.get("x-force-org-id"),
+    });
+    return new Response(JSON.stringify({ body: {}, success: true }));
+  };
+  const session = await connect(fetch as typeof globalThis.fetch, true);
+
+  try {
+    await session.client.callTool({
+      name: "controld_create_suborg",
+      arguments: {
+        name: "Example Org",
+        contact_email: "contact@example.com",
+        twofa_req: 1,
+        stats_endpoint: "abcdefghij",
+      },
+    });
+    await session.client.callTool({
+      name: "controld_update_organization",
+      arguments: { name: "Renamed Org", sub_org_id: "1234567890" },
+    });
+
+    assert.equal(requests[0].method, "POST");
+    assert.equal(requests[0].path, "/organizations/suborg");
+    assert.equal(requests[0].contentType, "application/x-www-form-urlencoded");
+    assert.deepEqual(
+      Object.fromEntries(new URLSearchParams(requests[0].body)),
+      {
+        name: "Example Org",
+        contact_email: "contact@example.com",
+        twofa_req: "1",
+        stats_endpoint: "abcdefghij",
+      },
+    );
+
+    assert.equal(requests[1].method, "PUT");
+    assert.equal(requests[1].path, "/organizations");
+    assert.equal(requests[1].subOrgId, "1234567890");
+    assert.equal(new URLSearchParams(requests[1].body).get("name"), "Renamed Org");
+  } finally {
+    await session.close();
+  }
+});
+
+test("the raw write tool honours method, encoding, and path safety", async () => {
+  const requests: CapturedRequest[] = [];
+  const fetch = async (input: string | URL | Request, init?: RequestInit) => {
+    const headers = new Headers(init?.headers);
+    requests.push({
+      method: init?.method ?? "GET",
+      path: new URL(String(input)).pathname,
+      body: String(init?.body ?? ""),
+      contentType: headers.get("content-type"),
+      subOrgId: headers.get("x-force-org-id"),
+    });
+    return new Response(JSON.stringify({ body: {}, success: true }));
+  };
+  const session = await connect(fetch as typeof globalThis.fetch, true);
+
+  try {
+    await session.client.callTool({
+      name: "controld_request_write",
+      arguments: {
+        method: "PUT",
+        path: "/profiles/1234567890/options/example",
+        body: { status: 1, value: "on" },
+      },
+    });
+    assert.equal(requests[0].method, "PUT");
+    assert.equal(requests[0].contentType, "application/x-www-form-urlencoded");
+    assert.deepEqual(
+      Object.fromEntries(new URLSearchParams(requests[0].body)),
+      { status: "1", value: "on" },
+    );
+
+    await session.client.callTool({
+      name: "controld_request_write",
+      arguments: {
+        method: "PUT",
+        path: "/profiles/1234567890/filters",
+        encoding: "json",
+        body: { filters: [{ filter: "example", status: 1 }] },
+      },
+    });
+    assert.equal(requests[1].contentType, "application/json");
+    assert.deepEqual(JSON.parse(requests[1].body), {
+      filters: [{ filter: "example", status: 1 }],
+    });
+
+    // A path that would retarget another host must be refused before any fetch.
+    for (const path of ["//example.com/steal", "\\example.com/steal", "https://example.com/steal"]) {
+      const result = await session.client.callTool({
+        name: "controld_request_write",
+        arguments: { method: "POST", path },
+      });
+      assert.equal(result.isError, true, `expected ${path} to be rejected`);
+    }
+    assert.equal(requests.length, 2, "rejected paths must not reach fetch");
   } finally {
     await session.close();
   }
