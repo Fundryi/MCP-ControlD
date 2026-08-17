@@ -52,6 +52,8 @@ Splitting the tokens is the point: reads keep using a read-scoped credential eve
 
 There is nothing to install and no setup command to run. Point your MCP client at `npx mcp-controld` and it fetches and starts the server for you.
 
+Every example below sets up **read-only** access, using one token. That is the safe default and it cannot change anything in your account. To let the server make changes, add a second token as well: see [turning on write tools](#turning-on-write-tools).
+
 ### Claude Code
 
 ```sh
@@ -123,7 +125,9 @@ npm install
 
 ## Turning on write tools
 
-Add a write token. That is the whole switch:
+There are two tokens, not one. The read token is required and signs every GET. The write token is optional and signs everything that changes your account. Keeping them separate means a read tool cannot mutate anything, even on a server that is allowed to write.
+
+Create a second, write-scoped token in the Control D dashboard, then add it alongside the first:
 
 ```json
 "env": {
