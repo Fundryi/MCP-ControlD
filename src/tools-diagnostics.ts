@@ -48,7 +48,7 @@ export const diagnosticsTools: readonly ToolDefinition[] = [
   defineTool({
     name: "controld_export_dns_query_logs",
     config: {
-      description: "Experimental: export DNS query logs as CSV. Requires Full Analytics on the device and may require an organization account.",
+      description: "Export DNS query logs as CSV for a bounded time window. Requires Full Analytics on the device. Works on personal and organization accounts.",
       inputSchema: z.object({
         analytics_endpoint_id: analyticsEndpointId.optional().describe("Analytics instance endpoint ID, not a hostname or URL. Omitted: auto-discovered from the account's stats_endpoint."),
         start_time: rfc3339.describe("RFC 3339 start timestamp."),

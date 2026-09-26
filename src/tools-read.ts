@@ -38,22 +38,24 @@ const profileConfigInput = z.object({
   ...subOrgInput,
 }).strict();
 
-const catalogInput = z.discriminatedUnion("catalog", [
-  z.object({
-    catalog: z.literal("services"),
-    category: nonEmptyString,
-  }).strict(),
-  z.object({
-    catalog: z.enum([
-      "profile_options",
-      "device_types",
-      "service_categories",
-      "proxies",
-      "analytics_levels",
-      "analytics_regions",
-    ]),
-  }).strict(),
-]);
+// One flat object, not a union: a top-level oneOf leaves hosts and models with
+// no `properties` to read. The refine keeps the union's rules.
+const catalogInput = z.object({
+  catalog: z.enum([
+    "profile_options",
+    "device_types",
+    "service_categories",
+    "services",
+    "proxies",
+    "analytics_levels",
+    "analytics_regions",
+  ]).describe("Catalog to list. 'services' also needs category."),
+  category: nonEmptyString.optional()
+    .describe("Service category ID from the service_categories catalog. Required with catalog 'services', not allowed otherwise."),
+}).strict().refine(
+  (input) => (input.catalog === "services") === (input.category !== undefined),
+  { message: "category is required with catalog 'services' and not allowed with any other catalog.", path: ["category"] },
+);
 
 export const readTools: readonly ToolDefinition[] = [
   defineTool({
@@ -102,7 +104,7 @@ export const readTools: readonly ToolDefinition[] = [
     },
     handler: (client, input) => {
       const path = input.catalog === "services"
-        ? `/services/categories/${segment(input.category)}`
+        ? `/services/categories/${segment(input.category ?? "")}`
         : {
             profile_options: "/profiles/options",
             device_types: "/devices/types",
