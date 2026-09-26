@@ -9,8 +9,10 @@ import { textResult, type ToolDefinition } from "./tools-shared.js";
 /** Sent to the client on connect. Keep every claim here true to the code below. */
 export const INSTRUCTIONS = [
   "Control D DNS management. Start with controld_list_profiles, then controld_get_profile_config with section \"all\" for one profile.",
-  "Every tool with readOnlyHint true only reads. Write tools exist only when the server has a write token.",
-  "A failed call returns isError true and a plain-text message, for API failures with the HTTP status. Read it, fix the input, and try again.",
+  "Every tool with readOnlyHint true only reads. Write tools exist only when the server has a write credential.",
+  "A failed call returns isError true and a short plain-text message. Control D failures end with the HTTP status and Control D code, for example \"(HTTP 404, code 40401)\".",
+  "HTTP 403 code 40301 \"This token does not have access to this endpoint\" can also mean the path does not exist. Check the path before you blame the token.",
+  "Organization tools fail on a personal account. That is expected, not a token problem.",
   "controld_request_read and controld_request_write are escape hatches for undocumented paths. Use a named tool first.",
 ].join("\n");
 

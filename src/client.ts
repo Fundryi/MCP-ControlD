@@ -303,10 +303,14 @@ export function createControlDClient(options: CreateClientOptions = {}): Control
           const message = typeof apiError?.message === "string"
             ? apiError.message
             : "Control D API request failed.";
-          const error = new Error(message) as ErrorWithCode;
-          if (typeof apiError?.code === "string" || typeof apiError?.code === "number") {
-            error.code = apiError.code;
-          }
+          const code = typeof apiError?.code === "string" || typeof apiError?.code === "number"
+            ? apiError.code
+            : undefined;
+          // Status and code in the text: Control D answers an unknown path with
+          // 403 / 40301 "no access", which reads like a token problem without them.
+          const detail = code === undefined ? `HTTP ${response.status}` : `HTTP ${response.status}, code ${code}`;
+          const error = new Error(`${message} (${detail})`) as ErrorWithCode;
+          if (code !== undefined) error.code = code;
           throw error;
         }
         if (!response.ok) throw new Error(`Control D API request failed (HTTP ${response.status}).`);

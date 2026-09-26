@@ -30,7 +30,7 @@ test("maps API errors to errors carrying message and code", async () => {
 
   await assert.rejects(client.request("/profiles/1234567890"), (error: unknown) => {
     assert(error instanceof Error);
-    assert.equal(error.message, "Profile not found");
+    assert.equal(error.message, "Profile not found (HTTP 404, code 404001)");
     assert.equal((error as Error & { code?: string }).code, "404001");
     return true;
   });
@@ -340,6 +340,7 @@ test("redacts a token that arrives as an error code", async () => {
 
   await assert.rejects(client.request("/profiles"), (error: unknown) => {
     assert.equal((error as Error & { code?: string }).code, "[REDACTED]");
+    assert.equal((error as Error).message, "denied (HTTP 403, code [REDACTED])");
     return true;
   });
 });
