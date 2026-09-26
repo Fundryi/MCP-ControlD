@@ -1,11 +1,16 @@
 #!/usr/bin/env node
 
+import { createRequire } from "node:module";
+
 import { McpServer } from "@modelcontextprotocol/server";
 import { serveStdio } from "@modelcontextprotocol/server/stdio";
 
 import { createControlDClient, redact, resolveConfig } from "./client.js";
 import type { ControlDClient, ResolvedConfig } from "./client.js";
 import { INSTRUCTIONS, registerTools } from "./tools.js";
+
+// package.json ships in the npm tarball, so `npm version` is the only place to bump.
+const { version } = createRequire(import.meta.url)("../package.json") as { version: string };
 
 let config: ResolvedConfig;
 let client: ControlDClient;
@@ -22,7 +27,7 @@ try {
 // away, then the real one), so keep state at module level, not on the server.
 function buildServer(): McpServer {
   const server = new McpServer(
-    { name: "mcp-controld", version: "0.1.1" },
+    { name: "mcp-controld", version },
     { instructions: INSTRUCTIONS },
   );
   registerTools(server, client, config.writeToken !== undefined);
