@@ -186,6 +186,16 @@ Create a second, write-scoped token in the Control D dashboard, then add it alon
 
 With no write token the write tools do not exist. Your client cannot list them and a prompt cannot call them, so a bad prompt cannot change your DNS setup.
 
+## Protocol support
+
+The server speaks MCP 2026-07-28 and every older revision from 2024-10-07 to 2025-11-25, on the same command. Your client picks the revision when it connects. There is nothing to configure.
+
+On connect the server sends short instructions: start with `controld_list_profiles`, then `controld_get_profile_config` with section `all`.
+
+A failed tool call returns a normal result with `isError: true` and one line of plain text. Examples are `Control D API request failed (HTTP 403).` or an input validation message that names the bad argument. Tokens never appear in that text. Calling a tool name that does not exist is rejected with JSON-RPC error -32602.
+
+Every tool carries MCP annotations. The 13 read and diagnostic tools have `readOnlyHint: true`. Write tools have `readOnlyHint: false`. The delete tools, `controld_deauthorize_ips`, and `controld_request_write` also have `destructiveHint: true`.
+
 ## Tool reference
 
 Profile, device, access, and log tools accept an optional `sub_org_id` when you are acting on a sub-organization.

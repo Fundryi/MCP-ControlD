@@ -219,7 +219,7 @@ src/
   tools.ts    # zod schemas + handlers, read/write grouped
 ```
 
-- Deps: `@modelcontextprotocol/sdk`, `zod` only. Node >=22 native fetch.
+- Deps: `@modelcontextprotocol/server` (SDK v2), `zod` only. Node >=22 native fetch.
 - No codegen (docs ship per-page OpenAPI fragments, not a spec), no classes, no
   per-endpoint files.
 - `CONTROLD_API_TOKEN` from env only; missing ⇒ startup error naming the

@@ -93,7 +93,8 @@ a signature.
 
 ## Decisions made
 
-- **TypeScript + `@modelcontextprotocol/sdk`, stdio transport.**
+- **TypeScript + `@modelcontextprotocol/server` (SDK v2), stdio transport.**
+  See [MCP protocol and SDK](#mcp-protocol-and-sdk).
 - **Two-token auth.** `CONTROLD_API_TOKEN_READ` signs GETs,
   `CONTROLD_API_TOKEN_WRITE` signs everything else, and write tools are not
   registered without a write credential. The older single-token setup still
@@ -107,6 +108,31 @@ a signature.
   maintainer-only and lives in `CLAUDE.local.md`.
 - **Only GET is retried.** A write can take effect before the failure reaches
   us, and a 429 carries no promise the request was rejected before it ran.
+
+## MCP protocol and SDK
+
+The server speaks MCP 2026-07-28 (stateless, no `initialize`) and the older
+revisions 2024-10-07 to 2025-11-25 on one stdio command. That needs SDK v2.
+
+- Use `@modelcontextprotocol/server` at runtime and `@modelcontextprotocol/client`
+  in tests. Never add `@modelcontextprotocol/sdk`. v1 stops at 2025-11-25,
+  1.30.x included.
+- `src/index.ts` starts with `serveStdio(buildServer)`. Do not go back to
+  `server.connect(new StdioServerTransport())`: that serves only the 2025 era.
+- `serveStdio` may call `buildServer` more than once per process. Keep state
+  at module level, never on the server object.
+- A tool fails by throwing. `registerTool` in `src/tools.ts` redacts the
+  message, and `McpServer` turns the throw into an `isError: true` result. The
+  SDK rejects an unknown tool with -32602. Do not build error results by hand.
+- `readOnlyHint` comes from the list a tool is in: `readAnnotations` for read
+  and diagnostic tools, write or destructive annotations for write tools.
+  `registerTools` refuses to start if one is wrong. A wrong hint tells hosts a
+  write is safe.
+- `INSTRUCTIONS` in `src/tools.ts` goes to every client on connect. If you
+  change the first calls, the error shape, or the read/write split, update it.
+- To check a protocol change for real, connect the built server with the v2
+  client three ways (`versionNegotiation` mode `"legacy"`,
+  `{ pin: "2026-07-28" }`, `"auto"`) and once with a v1 client.
 
 ## Open questions
 
