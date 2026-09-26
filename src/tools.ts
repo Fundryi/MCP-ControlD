@@ -1,10 +1,18 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 
 import { redact, type ControlDClient } from "./client.js";
 import { diagnosticsTools } from "./tools-diagnostics.js";
 import { readTools } from "./tools-read.js";
 import { writeTools } from "./tools-write.js";
 import { textResult, type ToolDefinition } from "./tools-shared.js";
+
+/** Sent to the client on connect. Keep every claim here true to the code below. */
+export const INSTRUCTIONS = [
+  "Control D DNS management. Start with controld_list_profiles, then controld_get_profile_config with section \"all\" for one profile.",
+  "Every tool with readOnlyHint true only reads. Write tools exist only when the server has a write token.",
+  "A failed call returns isError true and a plain-text message, for API failures with the HTTP status. Read it, fix the input, and try again.",
+  "controld_request_read and controld_request_write are escape hatches for undocumented paths. Use a named tool first.",
+].join("\n");
 
 function registerTool(server: McpServer, client: ControlDClient, tool: ToolDefinition): void {
   server.registerTool(tool.name, tool.config, async (args) => {
