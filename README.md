@@ -192,7 +192,7 @@ The server speaks MCP 2026-07-28 and every older revision from 2024-10-07 to 202
 
 On connect the server sends short instructions: start with `controld_list_profiles`, then `controld_get_profile_config` with section `all`.
 
-A failed tool call returns a normal result with `isError: true` and one line of plain text. Examples are `Control D API request failed (HTTP 403).` or an input validation message that names the bad argument. Tokens never appear in that text. Calling a tool name that does not exist is rejected with JSON-RPC error -32602.
+A failed tool call returns a normal result with `isError: true` and a short plain-text message. When Control D rejects a request, the message is Control D's own text followed by the HTTP status and the Control D error code, for example `This profile does not exist (HTTP 404, code 40401)`. A bad argument gets an input validation message that names the argument. Tokens never appear in that text. Calling a tool name that does not exist is rejected with JSON-RPC error -32602.
 
 Every tool carries MCP annotations. The 13 read and diagnostic tools have `readOnlyHint: true`. Write tools have `readOnlyHint: false`. The delete tools, `controld_deauthorize_ips`, and `controld_request_write` also have `destructiveHint: true`.
 
@@ -283,7 +283,9 @@ Found a security problem? See [SECURITY.md](SECURITY.md).
 
 **A write fails with a permission error.** The token in `CONTROLD_API_TOKEN_WRITE` is read-scoped. The server cannot tell the two apart, so Control D rejects it at request time instead. Create a write token in the dashboard.
 
-**Organization tools return an error.** Personal accounts have no organization. Those endpoints only work on org accounts.
+**Organization tools return an error.** Personal accounts have no organization. Those endpoints only work on org accounts, and on a personal account they fail with a 404 (code 40401).
+
+**`This token does not have access to this endpoint (HTTP 403, code 40301)`.** Control D sends this for a path that does not exist, too, not only for a token without access. If you called `controld_request_read` or `controld_request_write`, check the path first. The same token still works for any path that exists.
 
 ## Development
 

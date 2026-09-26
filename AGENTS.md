@@ -124,6 +124,10 @@ revisions 2024-10-07 to 2025-11-25 on one stdio command. That needs SDK v2.
 - A tool fails by throwing. `registerTool` in `src/tools.ts` redacts the
   message, and `McpServer` turns the throw into an `isError: true` result. The
   SDK rejects an unknown tool with -32602. Do not build error results by hand.
+- A Control D error keeps its HTTP status and code in the message text
+  (`src/client.ts`). Control D answers an unknown path with 403 / 40301
+  "no access", so without them a wrong path reads as a token problem. README
+  and `INSTRUCTIONS` describe that format.
 - `readOnlyHint` comes from the list a tool is in: `readAnnotations` for read
   and diagnostic tools, write or destructive annotations for write tools.
   `registerTools` refuses to start if one is wrong. A wrong hint tells hosts a

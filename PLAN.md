@@ -132,7 +132,7 @@ extracted from the page payload, each page fetched as raw markdown via its
 `endpointId` filter; `X-Force-Org-Id` for sub-orgs. Returns CSV (timestamp,
 endpointId, question, action, trigger, protocol, rrType, sourceIp, geo, …).
 Source: docs/how-to-export-logs-to-csv. The page carries a "For Organizations
-Only" note — whether personal accounts can use it needs a live check.
+Only" note, but a live check on a personal account worked (see Open questions).
 Requires the device to be on Full Analytics; logs retained ~1 month.
 
 **Verified absent** (both passes agree): no REST endpoints for the dashboard
@@ -222,7 +222,8 @@ src/
 - Deps: `@modelcontextprotocol/server` (SDK v2), `zod` only. Node >=22 native fetch.
 - No codegen (docs ship per-page OpenAPI fragments, not a spec), no classes, no
   per-endpoint files.
-- `CONTROLD_API_TOKEN` from env only; missing ⇒ startup error naming the
+- `CONTROLD_API_TOKEN_READ` (and optional `CONTROLD_API_TOKEN_WRITE`, or the
+  older `CONTROLD_API_TOKEN`) from env only; missing ⇒ startup error naming the
   variable. Never logged, never echoed, redacted everywhere.
 - Client compatibility: stdio + plain JSON Schema tool inputs
   (`additionalProperties: false`); no sampling/elicitation/resources — tools are
@@ -261,5 +262,5 @@ src/
   still needs a live organization account to confirm.
 - ~~Is CSV log export usable on personal accounts, or org-only?~~ → works,
   endpoint ID comes from `stats_endpoint` on `/users`.
-- Default writes on or off? Plan says off (`CONTROLD_ENABLE_WRITES=1` to
-  enable); flip if daily-driver convenience wins.
+- ~~Default writes on or off?~~ → off. Writes need `CONTROLD_API_TOKEN_WRITE`,
+  or the older `CONTROLD_API_TOKEN` plus `CONTROLD_ENABLE_WRITES=1`.
